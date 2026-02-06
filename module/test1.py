@@ -33,7 +33,7 @@ with st.sidebar:
     option_menu_side =  option_menu(
         menu_title='메뉴 선택',
         menu_icon='cast',
-        options=['흡연율 현황', '데이터 분석', '요약'],
+        options=['개요', '데이터 분석', '요약'],
         icons=['speedometer2', 'bar-chart-line', 'gear'],
         default_index=0,
         styles={
@@ -66,9 +66,9 @@ def load_lottie_json(url):
 
 # ================ 메인화면 ==================
 # 1) 대시보드 선택 시
-if option_menu_side == '흡연율 현황':
+if option_menu_side == '개요':
 
-    st.title('흡연율 현황')
+    st.title('개요')
 
 
     col1, col2 = st.columns([1,1])
@@ -161,12 +161,14 @@ if option_menu_side == '흡연율 현황':
 
     # 전체 데이터프레임
     with col2:
-
+        st.title("서울시 자치구별 흡연율")
+        final_df.index += 1 
         st.dataframe(final_df, column_config={'흡연':'흡연율(%)', '녹지' : '1인당 녹지면적(m^2)', '도보생활권공원' : '1인당 공원면적(m^2)',
                                               '스트레스' : '스트레스(%)', '우울감' : '우울감(%)', '금연치료센터' : '10만명당 금연치료센터(개)', '주거면적' : '1인당 주거면적(m^2)',
                                               '1인가구' : '1인가구(%)', '음주' : '음주(%)', '고위험음주' : '고위험음주(%)', '소득' : '평균연봉(단위:백만원)',
                                               '금연시도율' : '금연시도율(%)', '걷기운동' : '걷기운동(%)', '중고강도운동' : '중고강도운동(%)', '비만' : '비만율(%)'},
                      use_container_width=True, height=800,width = 1300 )
+
 
 
 
