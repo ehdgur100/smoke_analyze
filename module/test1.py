@@ -52,7 +52,6 @@ with st.sidebar:
         }
 
     )
-    st.info(f'현재 접속 : {option_menu_side} 모드')
 
 @st.cache_data
 def load_lottie_json(url):
@@ -68,29 +67,24 @@ def load_lottie_json(url):
 # ================ 메인화면 ==================
 # 1) 대시보드 선택 시
 if option_menu_side == '흡연율 현황':
-    lottie1 = load_lottie_json(
-    "https://lottie.host/b2039d5e-ab26-428a-8a65-839fafabfbf7/7rs4mysdZt.json"
-    )
-    with st.container():
-        col1, col2 = st.columns([3, 2])
 
-    # 텍스트 파트(좌측)
-    with col1 :
-        st.title('흡연율 현황')
+    st.title('흡연율 현황')
 
 
+    col1, col2 = st.columns([1,1])
+    # --------------------------------------------------------------------------------
+    # 1. 데이터 준비 (작성자님의 데이터프레임이 있다고 가정)
+    # --------------------------------------------------------------------------------
 
-        # --------------------------------------------------------------------------------
-        # 1. 데이터 준비 (작성자님의 데이터프레임이 있다고 가정)
-        # --------------------------------------------------------------------------------
-        rate_df = pd.read_csv('module/data/rate.csv', encoding='utf-8')
+    # 2. 서울시 지도 데이터(GeoJSON) 불러오기 (GitHub에서 실시간 로딩)
+    # --------------------------------------------------------------------------------
+    # 서울시 자치구 경계 좌표가 들어있는 파일 주소입니다. (가장 많이 쓰는 소스)
+    with col1:
 
-        # 2. 서울시 지도 데이터(GeoJSON) 불러오기 (GitHub에서 실시간 로딩)
-        # --------------------------------------------------------------------------------
-        # 서울시 자치구 경계 좌표가 들어있는 파일 주소입니다. (가장 많이 쓰는 소스)
         geo_url = 'https://raw.githubusercontent.com/southkorea/seoul-maps/master/kostat/2013/json/seoul_municipalities_geo_simple.json'
         response = requests.get(geo_url)
         seoul_geo = response.json()
+        final_df = pd.read_csv('module/data/final_df.csv', encoding='utf-8')
 
         # 1. 지도에 라벨(구이름) 달기위한 함수
         def make_text(text, color='white', size=11):  # 기본값을 white, 11로 변경
@@ -125,13 +119,12 @@ if option_menu_side == '흡연율 현황':
             zoom_start=11, 
             tiles='cartodbpositron' # 깔끔한 배경 스타일 (OpenStreetMap보다 분석용으로 좋음)
         )
-        rate_df = pd.read_csv('module/data/rate.csv', encoding='utf-8')
-        rate_df[['region', 'rate']]
+
         # (2) 단계구분도(색칠) 레이어 추가
         folium.Choropleth(
             geo_data=seoul_geo,             # 지도 경계 데이터
-            data=rate_df,                        # 분석할 데이터프레임
-            columns=['region', 'rate'], # [지역명 컬럼, 수치 컬럼]
+            data=final_df,                        # 분석할 데이터프레임
+            columns=['명칭', '흡연'], # [지역명 컬럼, 수치 컬럼]
             key_on='feature.properties.name', # GeoJSON 파일 안에 있는 지역명 키 값 (이거 건드리면 안됨!)
             fill_color='YlOrRd',            # 색상 (Yellow-Orange-Red: 빨갈수록 높음)
             fill_opacity=0.7,               # 투명도
@@ -162,34 +155,14 @@ if option_menu_side == '흡연율 현황':
         # 4. Streamlit 화면에 띄우기
         # --------------------------------------------------------------------------------
         st.title("🗺️ 서울시 자치구별 흡연율 지도")
+
         sf.st_folium(m, width=700)
 
 
-
-
-
-
-
-
-        green_df = pd.read_csv('module/data/green.csv', encoding='utf-8')
-        rate_df = pd.read_csv('module/data/rate.csv', encoding='utf-8')
-        test_df = pd.concat([rate_df[['region', 'rate']],green_df[['green_rate']]], axis = 1, join='inner')
-
-
-        fig, ax = plt.subplots()
-        ax.scatter(test_df['green_rate'], test_df['rate'], color='blue', alpha=1.0)
-        ax.set_xlabel('green')
-        ax.set_ylabel('smoke')
-
-        st.pyplot(fig)
-
-    # 애니메이션 파트 (우측)
+    # 전체 데이터프레임
     with col2:
-        if lottie1 :
-            # height : 애니메이션 높이(지정하지 않으면 원본 비율로 출력)
-            # weight : 애니메이션 너비(지정하지 않으면 할당된 공간에 맞춰 출력)
 
-            st_lottie(lottie1, height=300, key='a')
+        st.dataframe(final_df, use_container_width=True, height=800,width = 1300 )
 
 
 
