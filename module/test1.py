@@ -197,7 +197,7 @@ elif option_menu_side == "데이터 분석":
     # selectbox
     select = st.selectbox(label="변수 선택", options=df_data.columns)
 
-    # 산점도
+    # 산점도 차트
     fig = px.scatter(
         df,
         x=select,
