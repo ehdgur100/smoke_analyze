@@ -11,6 +11,10 @@ from folium.plugins import MiniMap, Fullscreen, HeatMap
 import json
 import requests
 from folium.features import DivIcon
+from matplotlib import rc
+import plotly.express as px
+
+rc("font", family="Malgun Gothic")
 
 st.set_page_config(layout="wide", page_title="Smoke", page_icon="🚭")
 
