@@ -93,11 +93,28 @@ if option_menu_side == '흡연율 현황':
         seoul_geo = response.json()
 
         # 1. 지도에 라벨(구이름) 달기위한 함수
-        def make_text(text, color='gray', size=8):
+        def make_text(text, color='white', size=11):  # 기본값을 white, 11로 변경
             return DivIcon(
                 icon_size=(100, 20),
                 icon_anchor=(50, 10),
-                html=f'<div style="font-size: {size}pt; font-weight: bold; color: {color}; text-shadow: 1px 1px 2px black; text-align: center;">{text}</div>'
+                html=f'''
+                    <div style="
+                        font-size: {size}pt;
+                        font-weight: 900;
+                        color: {color};
+
+                        /* 핵심: 그림자 대신 4방향 테두리를 줘서 글자를 선명하게 만듦 */
+                        text-shadow: -1px -1px 0 #000, 
+                                      1px -1px 0 #000, 
+                                     -1px  1px 0 #000, 
+                                      1px  1px 0 #000;
+
+                        text-align: center;
+                        white-space: nowrap; /* 글자 줄바꿈 금지 (한 줄로 나오게) */
+                    ">
+                        {text}
+                    </div>
+                '''
             )
         # --------------------------------------------------------------------------------
         # 3. Folium 지도 그리기 (Choropleth)
