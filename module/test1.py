@@ -16,7 +16,6 @@ import plotly.express as px
 import seaborn as sns
 import statsmodels.api as sm
 
-
 rc('font', family='Malgun Gothic')
 plt.rcParams['axes.unicode_minus'] = False
 st.set_page_config(
@@ -25,7 +24,90 @@ st.set_page_config(
     page_icon='🚭'
 )
 
-# ====[사이드바] 부분====
+#====================== 함수 =====================================
+# 데이터 불러오기(캐시)
+@st.cache_data
+def read_file():
+    return pd.read_csv('module/data/final_df.csv')
+
+# 서울 자치구별 위도경도값 데이터 가져오는 함수(캐시)
+@st.cache_data
+def seoul_json(geo_url = 'https://raw.githubusercontent.com/southkorea/seoul-maps/master/kostat/2013/json/seoul_municipalities_geo_simple.json'):
+    response = requests.get(geo_url)
+    seoul_geo = response.json()
+    return seoul_geo
+
+# 개요 흡연율 지도 함수
+def smoke_map(seoul_geo):
+    #  데이터 준비(함수 호출) 
+    final_df = read_file()
+
+    # 1. 지도에 라벨(구이름) 달기위한 함수
+    def make_text(text, color='white', size=11):  # 기본값을 white, 11로 변경
+        return DivIcon(
+            icon_size=(100, 20),
+            icon_anchor=(50, 10),
+            html=f'''
+                <div style="
+                    font-size: {size}pt;
+                    font-weight: 900;
+                    color: {color};
+
+                    /* 핵심: 그림자 대신 4방향 테두리를 줘서 글자를 선명하게 만듦 */
+                    text-shadow: -1px -1px 0 #000, 
+                                  1px -1px 0 #000, 
+                                 -1px  1px 0 #000, 
+                                  1px  1px 0 #000;
+
+                    text-align: center;
+                    white-space: nowrap; /* 글자 줄바꿈 금지 (한 줄로 나오게) */
+                ">
+                    {text}
+                </div>
+            '''
+        )
+    # --------------------------------------------------------------------------------
+    # 3. Folium 지도 그리기 (Choropleth)
+    # --------------------------------------------------------------------------------
+    # (1) 기본 지도 생성 (서울 시청 중심 좌표)
+    m = folium.Map(
+        location=[37.5665, 126.9780], 
+        zoom_start=11, 
+        tiles='cartodbpositron' # 깔끔한 배경 스타일 (OpenStreetMap보다 분석용으로 좋음)
+    )
+
+    # (2) 단계구분도(색칠) 레이어 추가
+    folium.Choropleth(
+        geo_data=seoul_geo,             # 지도 경계 데이터
+        data=final_df,                        # 분석할 데이터프레임
+        columns=['명칭', '흡연'], # [지역명 컬럼, 수치 컬럼]
+        key_on='feature.properties.name', # GeoJSON 파일 안에 있는 지역명 키 값 (이거 건드리면 안됨!)
+        fill_color='YlOrRd',            # 색상 (Yellow-Orange-Red: 빨갈수록 높음)
+        fill_opacity=0.7,               # 투명도
+        line_opacity=0.2,               # 경계선 투명도
+        legend_name='현재 흡연율 (%)'     # 범례 이름
+    ).add_to(m)
+
+
+    # 2. 반복문으로 25개 구 한 번에 추가하기
+    # seoul_geo['features'] 자체가 일종의 리스트입니다.
+    for feature in seoul_geo['features']:
+        # 이름 꺼내기
+        name = feature['properties']['name']
+
+        # 좌표 계산 (seoul_geo데이터에 있는 구별 위도와 경도 평균값)
+        coords = np.array(feature['geometry']['coordinates'][0])
+        center_lat = coords[:, 1].mean()
+        center_lon = coords[:, 0].mean()
+
+        # 지도에 추가 (여기서 함수 사용!)
+        folium.Marker(
+            location=[center_lat, center_lon],
+            icon=make_text(name) # <-- "이름(name)으로 라벨 만들어줘"
+        ).add_to(m)
+    return m
+
+# =====================[사이드바] 부분======================
 with st.sidebar:
 
     col1, col2 = st.columns([1,5])
@@ -37,7 +119,7 @@ with st.sidebar:
     with col2 :
         st.markdown('서울시 흡연율')
 
-    # 사이드바에 option_menu UI 배치
+    # ==================사이드바에 option_menu UI 배치======================
     option_menu_side =  option_menu(
         menu_title='메뉴 선택',
         menu_icon='cast',
@@ -61,116 +143,29 @@ with st.sidebar:
 
     )
 
-@st.cache_data
-def load_lottie_json(url):
-    res = req.get(url)
-    # status_code : <Response [200]> 에서 []안의 수치값 확인
-
-    if res.status_code != 200:
-        return st.error('통신 에러 발생')
-    return res.json()
 
 
-
-# ================ 메인화면 ==================
-# 1) 대시보드 선택 시
+# ======================= 메인화면 ========================
 if option_menu_side == '개요':
 
     st.title('개요')
 
+    tab1, tab2 = st.tabs(['🗺️ 서울시 자치구별 흡연율 지도', '서울시 자치구별 데이터'])
 
-    col1, col2 = st.columns([1,1])
-    # --------------------------------------------------------------------------------
-    # 1. 데이터 준비 (작성자님의 데이터프레임이 있다고 가정)
-    # --------------------------------------------------------------------------------
-
-    # 2. 서울시 지도 데이터(GeoJSON) 불러오기 (GitHub에서 실시간 로딩)
-    # --------------------------------------------------------------------------------
-    # 서울시 자치구 경계 좌표가 들어있는 파일 주소입니다. (가장 많이 쓰는 소스)
-    with col1:
-
-        geo_url = 'https://raw.githubusercontent.com/southkorea/seoul-maps/master/kostat/2013/json/seoul_municipalities_geo_simple.json'
-        response = requests.get(geo_url)
-        seoul_geo = response.json()
-        final_df = pd.read_csv('module/data/final_df.csv', encoding='utf-8')
-
-        # 1. 지도에 라벨(구이름) 달기위한 함수
-        def make_text(text, color='white', size=11):  # 기본값을 white, 11로 변경
-            return DivIcon(
-                icon_size=(100, 20),
-                icon_anchor=(50, 10),
-                html=f'''
-                    <div style="
-                        font-size: {size}pt;
-                        font-weight: 900;
-                        color: {color};
-
-                        /* 핵심: 그림자 대신 4방향 테두리를 줘서 글자를 선명하게 만듦 */
-                        text-shadow: -1px -1px 0 #000, 
-                                      1px -1px 0 #000, 
-                                     -1px  1px 0 #000, 
-                                      1px  1px 0 #000;
-
-                        text-align: center;
-                        white-space: nowrap; /* 글자 줄바꿈 금지 (한 줄로 나오게) */
-                    ">
-                        {text}
-                    </div>
-                '''
-            )
-        # --------------------------------------------------------------------------------
-        # 3. Folium 지도 그리기 (Choropleth)
-        # --------------------------------------------------------------------------------
-        # (1) 기본 지도 생성 (서울 시청 중심 좌표)
-        m = folium.Map(
-            location=[37.5665, 126.9780], 
-            zoom_start=11, 
-            tiles='cartodbpositron' # 깔끔한 배경 스타일 (OpenStreetMap보다 분석용으로 좋음)
-        )
-
-        # (2) 단계구분도(색칠) 레이어 추가
-        folium.Choropleth(
-            geo_data=seoul_geo,             # 지도 경계 데이터
-            data=final_df,                        # 분석할 데이터프레임
-            columns=['명칭', '흡연'], # [지역명 컬럼, 수치 컬럼]
-            key_on='feature.properties.name', # GeoJSON 파일 안에 있는 지역명 키 값 (이거 건드리면 안됨!)
-            fill_color='YlOrRd',            # 색상 (Yellow-Orange-Red: 빨갈수록 높음)
-            fill_opacity=0.7,               # 투명도
-            line_opacity=0.2,               # 경계선 투명도
-            legend_name='현재 흡연율 (%)'     # 범례 이름
-        ).add_to(m)
-
-
-        # 2. 반복문으로 25개 구 한 번에 추가하기
-        # seoul_geo['features'] 자체가 일종의 리스트입니다.
-        for feature in seoul_geo['features']:
-            # 이름 꺼내기
-            name = feature['properties']['name']
-
-            # 좌표 계산 (seoul_geo데이터에 있는 구별 위도와 경도 평균값)
-            coords = np.array(feature['geometry']['coordinates'][0])
-            center_lat = coords[:, 1].mean()
-            center_lon = coords[:, 0].mean()
-
-            # 지도에 추가 (여기서 함수 사용!)
-            folium.Marker(
-                location=[center_lat, center_lon],
-                icon=make_text(name) # <-- "이름(name)으로 라벨 만들어줘"
-            ).add_to(m)
-
-
-        # --------------------------------------------------------------------------------
-        # 4. Streamlit 화면에 띄우기
-        # --------------------------------------------------------------------------------
+    #  데이터 준비(함수 호출) 
+    final_df = read_file()
+    with tab1:
         st.header("🗺️ 서울시 자치구별 흡연율 지도")
 
-        sf.st_folium(m, use_container_width=True)
+        # ==========지도 함수 호출==================
+        m = smoke_map(seoul_json())
+        # Streamlit 화면에 지도 띄우기
+        sf.st_folium(m, use_container_width=True, key='smoke')
 
-
-    # 전체 데이터프레임
-    with col2:
+    # 전체 데이터프레임 컬럼명 변경
+    with tab2:
         st.header("서울시 자치구별 데이터")
-        final_df.index += 1 
+        final_df.index += 1 # 인덱스 1부터 보여주기
         st.dataframe(final_df, column_config={'흡연':'흡연율(%)', '녹지' : '1인당 녹지면적(m^2)', '도보생활권공원' : '1인당 공원면적(m^2)',
                                               '스트레스' : '스트레스(%)', '우울감' : '우울감(%)', '금연치료센터' : '10만명당 금연치료센터(개)', '주거면적' : '1인당 주거면적(m^2)',
                                               '1인가구' : '1인가구(%)', '음주' : '음주(%)', '고위험음주' : '고위험음주(%)', '소득' : '평균연봉(단위:백만원)',
@@ -183,7 +178,8 @@ if option_menu_side == '개요':
 elif option_menu_side == '데이터 분석':
     st.title("데이터 분석")
 
-    final_df = pd.read_csv("module/data/final_df.csv")
+    #  데이터 준비(함수 호출) 
+    final_df = read_file()
 
     df = pd.DataFrame(final_df)
 
@@ -214,44 +210,65 @@ elif option_menu_side == '데이터 분석':
     # 상관계수
     corr_method = "pearson" # 상관계수 계산 이론
     r = df[["흡연", select]].corr(method=corr_method).iloc[0, 1]
-    direction = "비례" if r > 0 else "반비례" # 상관계수 +면 비례, -면 반비례
+    direction = "양(+)의 상관관계" if r > 0 else "음(-)의 상관관계"
     # strength = "약함" if abs(r) < 0.3 else ("중간" if abs(r) < 0.6 else "강함")
     st.info(f"선택 변수 **{select}**는 흡연율과 **{direction}**, 상관계수 **{r:.2f}**")
 
 
 
 
+
 elif option_menu_side == '결과':
-    final_df = pd.read_csv('module/data/final_df.csv')
+
+    # 1) 데이터 불러오기 + 전처리 
+    final_df = read_file()
     final_df.columns = final_df.columns.str.strip()
 
+    # 숫자 컬럼만 추출 
     numeric_df = final_df.select_dtypes(include='number')
+
+    # 상관관계 계산 
     corr = numeric_df.corr()
 
+    # 흡연 기준 상관계수만 추출 
     target = "흡연"
     smoking_corr = corr[[target]].drop(index=target)
 
+    # 2 ) 상관계수 순위표 만들기 
     rank_table = smoking_corr.reset_index()
     rank_table.columns = ['변수', '상관계수']
     rank_table['절댓값'] = rank_table['상관계수'].abs()
+
+    # 절대값 기준 정렬( 영향력 큰 순 )
     rank_table = rank_table.sort_values(by='상관계수', key=abs, ascending=False)
+
+    # 순위 추가 
     rank_table['순위'] = range(1, len(rank_table)+1)
     rank_table = rank_table[['순위', '변수', '상관계수']]
 
+    # 화면 제목 
     st.title("결과")
 
     '---'
 
-
+    # 히트맵, 표, 바 차트
     col1, col2 =st.columns([1,1])
 
+    # ================= 히트맵 =================
     with col1 :
 
-    # ================= 히트맵 =================
+        _, center, _ = st.columns([1,3,1])
+
+        with center:
+            st.subheader("흡연율과 요소별 히트맵")
+
+
         fig1, ax1 = plt.subplots(figsize=(6,8))
 
+        sorted_heatmap = smoking_corr.loc[rank_table['변수']]
+
         sns.heatmap(
-            smoking_corr,
+            sorted_heatmap,
             annot=True,
             cmap="coolwarm",
             vmin=-1,
@@ -259,38 +276,28 @@ elif option_menu_side == '결과':
             fmt=".2f",
             linewidths=2,
             ax=ax1,
-
         )
-
-        st.markdown(
-            "<p style='font-size:20px; text-align:center;'>흡연율과 요소별 히트맵</p>",
-            unsafe_allow_html=True
-        )
-
-
 
         st.pyplot(fig1)
 
+    # ================= 표 =================
     with col2 :
 
-    # ================= 표 =================
+        _, center, _ = st.columns([1,2,1])
 
-
-        st.markdown(
-            "<p style='font-size:20px; text-align:center;'>상관계수 순위</p>",
-            unsafe_allow_html=True
-        )
+        with center:
+            st.subheader("상관계수 순위표")
 
         st.dataframe(rank_table.reset_index(drop=True),
             use_container_width=True,
             hide_index=True, height=525)
 
-
-
     # ================= 바 차트 =================
-    fig2, ax2 = plt.subplots(figsize=(10,6))
+
+    fig2, ax2 = plt.subplots(figsize=(8, 4))
 
     ax2.barh(
+
         rank_table['변수'],
         rank_table['상관계수']
     )
@@ -299,5 +306,4 @@ elif option_menu_side == '결과':
     ax2.invert_yaxis()
 
     ''
-
     st.pyplot(fig2)
