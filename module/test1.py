@@ -187,34 +187,35 @@ elif option_menu_side == '데이터 분석':
 
     df = pd.DataFrame(final_df)
 
+    # 지역구(명칭), 흡연(흡연율) 컬럼 제외한 selectbox
     df_data = df.drop(columns=["명칭", "흡연"])
 
     # selectbox
     select = st.selectbox(label="변수 선택", options=df_data.columns)
 
-    # 산점도 차트
+    # 산점도 차트 : plotly scatter 사용
     fig = px.scatter(
         df,
-        x=select,
-        y="흡연",
+        x=select, # x축 : 선택한 변수
+        y="흡연", # y축 : 흡연율
         hover_name="명칭",
-        hover_data=["흡연", select],
+        hover_data=["흡연", select], # 마우스 오버 시 지역구와 선택한 변수
         trendline="ols",
-        color="흡연",
-        color_continuous_scale="Blues",
+        color=select, # 선택한 변수 값으로 색상 달라짐
+        color_continuous_scale="Viridis",
         title=f"흡연율과 {select}의 상관관계",
         labels={"흡연": "흡연율(%)", select: select},
     )
 
     fig.update_yaxes(title_text="흡\n연\n율\n(%)")
-    fig.update_layout(height=550, margin=dict(l=40, r=40, t=60, b=40))
+    fig.update_layout(height=550, margin=dict(l=40, r=40, t=60, b=40)) # 차트 크기
     st.plotly_chart(fig, use_container_width=True)
 
     # 상관계수
-    corr_method = "pearson"
+    corr_method = "pearson" # 상관계수 계산 이론
     r = df[["흡연", select]].corr(method=corr_method).iloc[0, 1]
-    direction = "비례" if r > 0 else "반비례"
-    strength = "약함" if abs(r) < 0.2 else ("중간" if abs(r) < 0.4 else "강함")
+    direction = "비례" if r > 0 else "반비례" # 상관계수 +면 비례, -면 반비례
+    # strength = "약함" if abs(r) < 0.3 else ("중간" if abs(r) < 0.6 else "강함")
     st.info(f"선택 변수 **{select}**는 흡연율과 **{direction}**, 상관계수 **{r:.2f}**")
 
 
