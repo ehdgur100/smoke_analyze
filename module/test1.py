@@ -150,7 +150,7 @@ if option_menu_side == '개요':
 
     st.title('개요')
 
-    tab1, tab2 = st.tabs(['🗺️ 서울시 자치구별 흡연율 지도', '서울시 자치구별 데이터'])
+    tab1, tab2 = st.tabs(['지도', '데이터'])
 
     #  데이터 준비(함수 호출) 
     final_df = read_file()
@@ -249,61 +249,68 @@ elif option_menu_side == '결과':
     # 화면 제목 
     st.title("결과")
 
-    '---'
 
-    # 히트맵, 표, 바 차트
-    col1, col2 =st.columns([1,1])
+    tab1, tab2 = st.tabs(['히트맵과 표', '차트'])
 
-    # ================= 히트맵 =================
-    with col1 :
+    with tab1:
 
-        _, center, _ = st.columns([1,3,1])
+        # 히트맵, 표, 바 차트
+        col1, col2 =st.columns([1,1])
 
-        with center:
-            st.subheader("흡연율과 요소별 히트맵")
+        # ================= 히트맵 =================
+        with col1 :
+
+            _, center, _ = st.columns([1,3,1])
+
+            with center:
+                st.subheader("흡연율과 요소별 히트맵")
 
 
-        fig1, ax1 = plt.subplots(figsize=(6,8))
+            fig1, ax1 = plt.subplots(figsize=(6,8))
 
-        sorted_heatmap = smoking_corr.loc[rank_table['변수']]
+            sorted_heatmap = smoking_corr.loc[rank_table['변수']]
 
-        sns.heatmap(
-            sorted_heatmap,
-            annot=True,
-            cmap="coolwarm",
-            vmin=-1,
-            vmax=1,
-            fmt=".2f",
-            linewidths=2,
-            ax=ax1,
-        )
+            sns.heatmap(
+                sorted_heatmap,
+                annot=True,
+                cmap="coolwarm",
+                vmin=-1,
+                vmax=1,
+                fmt=".2f",
+                linewidths=2,
+                ax=ax1,
+            )
 
-        st.pyplot(fig1)
+            st.pyplot(fig1)
 
     # ================= 표 =================
-    with col2 :
 
-        _, center, _ = st.columns([1,2,1])
 
-        with center:
-            st.subheader("상관계수 순위표")
+        with col2 :
 
-        st.dataframe(rank_table.reset_index(drop=True),
-            use_container_width=True,
-            hide_index=True, height=525)
+            _, center, _ = st.columns([1,2,1])
+
+            with center:
+                st.subheader("상관계수 순위표")
+
+            st.dataframe(rank_table.reset_index(drop=True),
+                use_container_width=True,
+                hide_index=True, height=525)
 
     # ================= 바 차트 =================
 
-    fig2, ax2 = plt.subplots(figsize=(8, 4))
+    with tab2 :
 
-    ax2.barh(
+        fig2, ax2 = plt.subplots(figsize=(8, 4))
 
-        rank_table['변수'],
-        rank_table['상관계수']
-    )
+        ax2.barh(
 
-    ax2.axvline(0, color='red')
-    ax2.invert_yaxis()
+            rank_table['변수'],
+            rank_table['상관계수']
+        )
 
-    ''
-    st.pyplot(fig2)
+        ax2.axvline(0, color='red')
+        ax2.invert_yaxis()
+
+        ''
+        st.pyplot(fig2)
