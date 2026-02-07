@@ -250,7 +250,7 @@ elif option_menu_side == '결과':
     st.title("결과")
 
 
-    tab1, tab2 = st.tabs(['히트맵과 표', '차트'])
+    tab1, tab2 = st.tabs(['히트맵과 표', '바'])
 
     with tab1:
 
