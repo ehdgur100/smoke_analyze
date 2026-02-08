@@ -1,11 +1,9 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import requests as req
 import folium
 import streamlit_folium as sf
 from streamlit_option_menu import option_menu
-from streamlit_lottie import st_lottie
 import matplotlib.pyplot as plt
 from folium.plugins import MiniMap, Fullscreen, HeatMap
 import json
@@ -15,16 +13,19 @@ from matplotlib import rc
 import plotly.express as px
 import seaborn as sns
 import statsmodels.api as sm
-
+# ========================== 기본 설정 =============================
+# 한글 깨짐 방지
 rc('font', family='Malgun Gothic')
 plt.rcParams['axes.unicode_minus'] = False
+
+# 페이지 기본 설정
 st.set_page_config(
     layout='wide',
     page_title='Smoke',
     page_icon='🚭'
 )
 
-#====================== 함수 =====================================
+#========================================= 함수 ==============================================
 # 데이터 불러오기(캐시)
 @st.cache_data
 def read_file():
@@ -42,7 +43,7 @@ def smoke_map(seoul_geo):
     #  데이터 준비(함수 호출) 
     final_df = read_file()
 
-    # 1. 지도에 라벨(구이름) 달기위한 함수
+    #  지도에 라벨(구이름) 달기위한 함수
     def make_text(text, color='white', size=11):  # 기본값을 white, 11로 변경
         return DivIcon(
             icon_size=(100, 20),
@@ -66,31 +67,28 @@ def smoke_map(seoul_geo):
                 </div>
             '''
         )
-    # --------------------------------------------------------------------------------
-    # 3. Folium 지도 그리기 (Choropleth)
-    # --------------------------------------------------------------------------------
-    # (1) 기본 지도 생성 (서울 시청 중심 좌표)
+    # ===================== Folium 지도 그리기 =======================
+    # 지도 생성 (서울 시청 중심 좌표)
     m = folium.Map(
         location=[37.5665, 126.9780], 
         zoom_start=11, 
         tiles='cartodbpositron' # 깔끔한 배경 스타일 (OpenStreetMap보다 분석용으로 좋음)
     )
 
-    # (2) 단계구분도(색칠) 레이어 추가
+    # 단계구분도(색칠) 레이어 추가
     folium.Choropleth(
         geo_data=seoul_geo,             # 지도 경계 데이터
-        data=final_df,                        # 분석할 데이터프레임
-        columns=['명칭', '흡연'], # [지역명 컬럼, 수치 컬럼]
-        key_on='feature.properties.name', # GeoJSON 파일 안에 있는 지역명 키 값 (이거 건드리면 안됨!)
+        data=final_df,                  # 분석할 데이터프레임
+        columns=['명칭', '흡연'],       # [지역명 컬럼, 수치 컬럼]
+        key_on='feature.properties.name', # GeoJSON 파일 안에 있는 지역명 키 값
         fill_color='YlOrRd',            # 색상 (Yellow-Orange-Red: 빨갈수록 높음)
         fill_opacity=0.7,               # 투명도
         line_opacity=0.2,               # 경계선 투명도
-        legend_name='현재 흡연율 (%)'     # 범례 이름
+        legend_name='현재 흡연율 (%)'   # 범례 이름
     ).add_to(m)
 
-
-    # 2. 반복문으로 25개 구 한 번에 추가하기
-    # seoul_geo['features'] 자체가 일종의 리스트입니다.
+    # === 반복문으로 지도에 구이름 찍어주기 ===
+    # seoul_geo['features'] 자체가 일종의 리스트
     for feature in seoul_geo['features']:
         # 이름 꺼내기
         name = feature['properties']['name']
@@ -106,10 +104,11 @@ def smoke_map(seoul_geo):
             icon=make_text(name) # <-- "이름(name)으로 라벨 만들어줘"
         ).add_to(m)
     return m
+# =========================================================== 전체 화면 구성 =========================================================================
 
-# =====================[사이드바] 부분======================
+# ================================= [왼쪽 사이드바] 부분 =======================================
 with st.sidebar:
-
+    # 좌우 구역 나누기
     col1, col2 = st.columns([1,5])
 
     # 로고 부분(좌측)
@@ -119,7 +118,7 @@ with st.sidebar:
     with col2 :
         st.markdown('서울시 흡연율')
 
-    # ==================사이드바에 option_menu UI 배치======================
+    # ================== 사이드바에 option_menu UI 배치 ======================
     option_menu_side =  option_menu(
         menu_title='메뉴 선택',
         menu_icon='cast',
@@ -145,36 +144,42 @@ with st.sidebar:
 
 
 
-# ======================= 메인화면 ========================
+# =================================================== 메인화면 ============================================================
+
+# ============================ 옵션 메뉴 : 개요 ===================================
 if option_menu_side == '개요':
 
     st.title('개요')
 
+    # 탭버튼 추가
     tab1, tab2 = st.tabs(['지도', '데이터'])
 
     #  데이터 준비(함수 호출) 
     final_df = read_file()
+    # ====================== 탭1 '지도' 선택 ============================    
     with tab1:
         st.header("🗺️ 서울시 자치구별 흡연율 지도")
 
         # ==========지도 함수 호출==================
         m = smoke_map(seoul_json())
+
         # Streamlit 화면에 지도 띄우기
         sf.st_folium(m, use_container_width=True, key='smoke')
 
-    # 전체 데이터프레임 컬럼명 변경
+    # ====================== 탭2 '히트맵과 표' 선택 ============================
     with tab2:
         st.header("서울시 자치구별 데이터")
         final_df.index += 1 # 인덱스 1부터 보여주기
-        st.dataframe(final_df, column_config={'흡연':'흡연율(%)', '녹지' : '1인당 녹지면적(m^2)', '도보생활권공원' : '1인당 공원면적(m^2)',
-                                              '스트레스' : '스트레스(%)', '우울감' : '우울감(%)', '금연치료센터' : '10만명당 금연치료센터(개)', '주거면적' : '1인당 주거면적(m^2)',
+        # 전체 데이터프레임 컬럼명 변경
+        st.dataframe(final_df, column_config={'흡연':'흡연율(%)', '녹지' : '1인당 녹지면적(m²)', '도보생활권공원' : '1인당 공원면적(m²)',
+                                              '스트레스' : '스트레스(%)', '우울감' : '우울감(%)', '금연치료센터' : '10만명당 금연치료센터(개)', '주거면적' : '1인당 주거면적(m²)',
                                               '1인가구' : '1인가구(%)', '음주' : '음주(%)', '고위험음주' : '고위험음주(%)', '소득' : '평균연봉(단위:백만원)',
                                               '금연시도율' : '금연시도율(%)', '걷기운동' : '걷기운동(%)', '중고강도운동' : '중고강도운동(%)', '비만' : '비만율(%)'},
                      use_container_width=True, height=800,width = 1300 )
 
 
 
-
+# ============================ 옵션 메뉴 : 데이터 분석 ===================================
 elif option_menu_side == '데이터 분석':
     st.title("데이터 분석")
 
@@ -187,7 +192,8 @@ elif option_menu_side == '데이터 분석':
     df_data = df.drop(columns=["명칭", "흡연"])
 
     # selectbox
-    select = st.selectbox(label="변수 선택", options=df_data.columns)
+    # 키값만 넣어주면 자동으로 세션수
+    select = st.selectbox(label="변수 선택", options=df_data.columns, key='selected_var')
 
     # 산점도 차트 : plotly scatter 사용
     fig = px.scatter(
@@ -196,14 +202,14 @@ elif option_menu_side == '데이터 분석':
         y="흡연", # y축 : 흡연율
         hover_name="명칭",
         hover_data=["흡연", select], # 마우스 오버 시 지역구와 선택한 변수
-        trendline="ols",
+        trendline="ols", # (선형 회귀) 추세선 추가
         color=select, # 선택한 변수 값으로 색상 달라짐
         color_continuous_scale="Viridis",
         title=f"흡연율과 {select}의 상관관계",
         labels={"흡연": "흡연율(%)", select: select},
     )
 
-    fig.update_yaxes(title_text="흡\n연\n율\n(%)")
+    fig.update_yaxes(title_text="흡\n연\n율\n(%)") # \n 줄바꿈
     fig.update_layout(height=550, margin=dict(l=40, r=40, t=60, b=40)) # 차트 크기
     st.plotly_chart(fig, use_container_width=True)
 
@@ -216,8 +222,7 @@ elif option_menu_side == '데이터 분석':
 
 
 
-
-
+# ============================ 옵션 메뉴 : 결과 ===================================
 elif option_menu_side == '결과':
 
     # 1) 데이터 불러오기 + 전처리 
@@ -248,16 +253,15 @@ elif option_menu_side == '결과':
 
     # 화면 제목 
     st.title("결과")
-
-
     tab1, tab2 = st.tabs(['히트맵과 표', '바'])
 
+    # ====================== 탭1 '히트맵과 표' 선택 ============================
     with tab1:
 
         # 히트맵, 표, 바 차트
         col1, col2 =st.columns([1,1])
 
-        # ================= 히트맵 =================
+        # ======= 히트맵 ========
         with col1 :
 
             _, center, _ = st.columns([1,3,1])
@@ -270,6 +274,7 @@ elif option_menu_side == '결과':
 
             sorted_heatmap = smoking_corr.loc[rank_table['변수']]
 
+            # sns = seaborn(시각화 라이브러리)
             sns.heatmap(
                 sorted_heatmap,
                 annot=True,
@@ -283,8 +288,7 @@ elif option_menu_side == '결과':
 
             st.pyplot(fig1)
 
-    # ================= 표 =================
-
+        # ======== 표 =========
 
         with col2 :
 
@@ -297,10 +301,10 @@ elif option_menu_side == '결과':
                 use_container_width=True,
                 hide_index=True, height=525)
 
-    # ================= 바 차트 =================
 
+    # ====================== 탭2 '바' 선택 ============================
     with tab2 :
-
+        # ============= 바 차트 =============
         fig2, ax2 = plt.subplots(figsize=(8, 4))
 
         ax2.barh(
@@ -311,6 +315,5 @@ elif option_menu_side == '결과':
 
         ax2.axvline(0, color='red')
         ax2.invert_yaxis()
-
         ''
         st.pyplot(fig2)
