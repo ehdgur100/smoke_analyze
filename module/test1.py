@@ -14,9 +14,6 @@ import plotly.express as px
 import seaborn as sns
 import statsmodels.api as sm
 # ========================== 기본 설정 =============================
-# 한글 깨짐 방지
-rc('font', family='Malgun Gothic')
-plt.rcParams['axes.unicode_minus'] = False
 
 # 페이지 기본 설정
 st.set_page_config(
@@ -25,6 +22,14 @@ st.set_page_config(
     page_icon='🚭'
 )
 
+# 한글 깨짐 방지
+rc('font', family='Malgun Gothic')
+plt.rcParams['axes.unicode_minus'] = False
+
+
+# 세션 초기화
+if 'saved_var' not in st.session_state:
+    st.session_state['saved_var'] = '녹지'
 #========================================= 함수 ==============================================
 # 데이터 불러오기(캐시)
 @st.cache_data
@@ -190,10 +195,19 @@ elif option_menu_side == '데이터 분석':
 
     # 지역구(명칭), 흡연(흡연율) 컬럼 제외한 selectbox
     df_data = df.drop(columns=["명칭", "흡연"])
+    saved = st.session_state.get('saved_var')
+
+    if saved in df_data.columns:
+        # 있으면 그 위치(index)를 user_index로
+        user_index = list(df_data.columns).index(saved)
+    else:
+        # 없으면(데이터가 바뀌었거나 오타면) 0으로
+        user_index = 0
 
     # selectbox
-    # 키값만 넣어주면 자동으로 세션수
-    select = st.selectbox(label="변수 선택", options=df_data.columns, key='selected_var')
+    select = st.selectbox(label="변수 선택", options=df_data.columns, index = user_index)
+    # 사용자 선택값 세션으로
+    st.session_state['saved_var'] = select
 
     # 산점도 차트 : plotly scatter 사용
     fig = px.scatter(
