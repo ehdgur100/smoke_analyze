@@ -231,7 +231,6 @@ elif option_menu_side == '데이터 분석':
     corr_method = "pearson" # 상관계수 계산 이론
     r = df[["흡연", select]].corr(method=corr_method).iloc[0, 1]
     direction = "양(+)의 상관관계" if r > 0 else "음(-)의 상관관계"
-    # strength = "약함" if abs(r) < 0.3 else ("중간" if abs(r) < 0.6 else "강함")
     st.info(f"선택 변수 **{select}**는 흡연율과 **{direction}**, 상관계수 **{r:.2f}**")
 
 
