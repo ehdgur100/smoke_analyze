@@ -109,6 +109,11 @@ def smoke_map(seoul_geo):
             icon=make_text(name) # <-- "이름(name)으로 라벨 만들어줘"
         ).add_to(m)
     return m
+
+# 사용자 선택값을 세션값으로 바꾸는 함수
+def update_sel():
+    st.session_state['saved_var'] = st.session_state['select']
+
 # =========================================================== 전체 화면 구성 =========================================================================
 
 # ================================= [왼쪽 사이드바] 부분 =======================================
@@ -205,9 +210,8 @@ elif option_menu_side == '데이터 분석':
         user_index = 0
 
     # selectbox
-    select = st.selectbox(label="변수 선택", options=df_data.columns, index = user_index)
-    # 사용자 선택값 세션으로
-    st.session_state['saved_var'] = select
+    select = st.selectbox(label="변수 선택", options=df_data.columns, index = user_index, key='select', on_change=update_sel)# onchange : 값이 바뀌면 실행
+
 
     # 산점도 차트 : plotly scatter 사용
     fig = px.scatter(
