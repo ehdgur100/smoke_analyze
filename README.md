@@ -10,7 +10,7 @@
 이 프로젝트는 **흡연 관련 데이터**를 분석하고, 그 결과를 **Streamlit**을 이용해 웹 대시보드로 시각화한 프로젝트입니다.
 Jupyter Notebook을 통해 데이터 전처리 및 탐색적 분석(EDA)을 수행하였으며, 사용자가 직접 데이터를 탐색할 수 있도록 인터랙티브한 웹 페이지를 구현했습니다.
 
-## 🔗 실행 주소 (Demo)
+## 🔗 실행 주소
 웹 브라우저에서 바로 결과를 확인해보세요!
 👉 **[Streamlit 앱 보러가기](https://smokeanalyze-nzeqhfewkfiel7iy5qz5cq.streamlit.app/)**
 
