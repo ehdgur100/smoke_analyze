@@ -37,6 +37,6 @@ Jupyter Notebook을 통해 데이터 전처리 및 탐색적 분석(EDA)을 수�
 
 ### 개발자
 1. 김동혁 : ehdgur100@gmail.com
-2. 김휘주 : khj41670@gmail.com
+2. 김휘주 : khwijoo@gmail.com
 3. 백세현 :
-4. 이예경 :
+4. 이예경 : prhgbbd@gmail.com
