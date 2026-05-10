@@ -210,6 +210,7 @@ elif option_menu_side == '데이터 분석':
         user_index = 0
 
     # selectbox
+    # 키를 넣으면 세션에 자동으로 값 저장
     select = st.selectbox(label="변수 선택", options=df_data.columns, index = user_index, key='select', on_change=update_sel)# onchange : 값이 바뀌면 실행
 
 
