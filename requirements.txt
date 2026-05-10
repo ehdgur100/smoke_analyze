@@ -9,3 +9,4 @@ requests
 plotly
 seaborn
 statsmodels
+koreanize-matplotlib
